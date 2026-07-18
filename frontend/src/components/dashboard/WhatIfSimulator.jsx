@@ -26,14 +26,14 @@ export default function WhatIfSimulator({ onSimulate }) {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col h-full">
-      <div className="p-5 border-b border-slate-100 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col h-full dark:border-slate-800 dark:bg-slate-900">
+      <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
           <FlaskConical size={20} />
         </div>
         <div>
-          <h3 className="text-base font-bold text-slate-800">What-If Simulator</h3>
-          <p className="text-xs text-slate-500">Test strategies before implementing them.</p>
+          <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">What-If Simulator</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Test strategies before implementing them.</p>
         </div>
       </div>
 
@@ -185,8 +185,8 @@ function SliderInput({ label, value, onChange, min, max, suffix, color }) {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <label className="text-sm font-semibold text-slate-700">{label}</label>
-        <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-bold text-slate-800">
+        <label className="text-sm font-semibold text-slate-700 dark:text-slate-400">{label}</label>
+        <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-bold text-slate-800 dark:bg-slate-800 dark:text-slate-200">
           {value > 0 && !label.includes('Reduce') && !label.includes('Faster') ? '+' : ''}{value}{suffix}
         </span>
       </div>
@@ -196,7 +196,7 @@ function SliderInput({ label, value, onChange, min, max, suffix, color }) {
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className={`mt-3 w-full h-2 rounded-full bg-slate-100 appearance-none cursor-pointer ${colorMap[color]}`}
+        className={`mt-3 w-full h-2 rounded-full bg-slate-100 appearance-none cursor-pointer dark:bg-slate-700 ${colorMap[color]}`}
       />
     </div>
   )

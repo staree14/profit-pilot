@@ -58,16 +58,16 @@ export default function Composer({ onSend, disabled }) {
   }
 
   return (
-    <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3">
+    <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
       {/* Attachment chip */}
       {attachment && (
         <div className="mb-2 flex">
-          <span className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 py-1 pr-1.5 pl-2.5 text-xs text-slate-600">
+          <span className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 py-1 pr-1.5 pl-2.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
             <FileText size={12} strokeWidth={1.75} />
             {attachment.name}
             <button
               onClick={() => setAttachment(null)}
-              className="rounded-full p-0.5 hover:bg-slate-200"
+              className="rounded-full p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700"
               aria-label="Remove attachment"
             >
               <X size={12} />
@@ -85,7 +85,7 @@ export default function Composer({ onSend, disabled }) {
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-all ${
             listening
               ? 'border-blue-500 bg-blue-600 text-white shadow-md shadow-blue-600/20'
-              : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-slate-50'
+              : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-500 dark:hover:border-slate-600 dark:hover:bg-slate-800'
           }`}
         >
           <Mic size={16} strokeWidth={1.75} className={listening ? 'animate-pulse' : ''} />
@@ -95,7 +95,7 @@ export default function Composer({ onSend, disabled }) {
         <button
           onClick={() => fileRef.current?.click()}
           aria-label="Attach file"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-slate-50 transition-colors"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-500 dark:hover:border-slate-600 dark:hover:bg-slate-800"
         >
           <Paperclip size={16} strokeWidth={1.75} />
         </button>
@@ -117,7 +117,7 @@ export default function Composer({ onSend, disabled }) {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
           placeholder="Ask about your business..."
-          className="h-9 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+          className="h-9 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm text-slate-700 transition-all placeholder:text-slate-400 focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:border-blue-700 dark:focus:bg-slate-900 dark:focus:ring-blue-950"
         />
 
         {/* Send button */}
@@ -128,7 +128,7 @@ export default function Composer({ onSend, disabled }) {
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all ${
             text.trim()
               ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700'
-              : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+              : 'bg-slate-100 text-slate-300 cursor-not-allowed dark:bg-slate-800 dark:text-slate-600'
           }`}
         >
           <ArrowUp size={16} strokeWidth={2} />

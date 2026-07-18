@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import TopBar from '../components/TopBar.jsx'
 import ChatPanel from '../components/ChatPanel.jsx'
@@ -6,7 +6,12 @@ import DashboardCards from '../components/dashboard/DashboardCards.jsx'
 import ChartsGrid from '../components/dashboard/ChartsGrid.jsx'
 import RecommendationCard from '../components/dashboard/RecommendationCard.jsx'
 import WhatIfSimulator from '../components/dashboard/WhatIfSimulator.jsx'
-import { sendMessage, greeting, getDashboardData, runSimulation } from '../api/client.js'
+import BusinessReport from '../components/dashboard/BusinessReport.jsx'
+import { sendMessage, greeting, getDashboardData, runSimulation, getGoals, getCurrentMetrics } from '../api/client.js'
+import { computeGoalProgress, formatINR, formatMonth } from '../lib/goals.js'
+
+const PIPELINE_STEP_MS = 400 // keep in sync with AIStatusPanel
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export default function AppPage() {
   // Chat state
@@ -14,18 +19,45 @@ export default function AppPage() {
     { role: 'assistant', content: greeting.reply, ...greeting },
   ])
   const [thinking, setThinking] = useState(false)
+  // Pipeline currently shown in AIStatusPanel — set the moment a response
+  // arrives so its trace reveals BEFORE the reply bubble (chat_panel.html logic).
+  const [activePipeline, setActivePipeline] = useState(greeting.pipeline)
   const [chatExpanded, setChatExpanded] = useState(false)
 
   // Dashboard data
   const dashboardData = useMemo(() => getDashboardData(), [])
 
+  // Goal-aware recommendations: when a profit goal exists, rank by how much
+  // of the monthly profit gap each recommendation closes — so the list reads
+  // as a plan toward the target, not a random set of tips.
+  const [goals, setGoals] = useState([])
+  useEffect(() => {
+    getGoals().then(setGoals)
+  }, [])
+
+  const profitGoal = goals.find((g) => g.type === 'profit')
+  const goalProgress = profitGoal
+    ? computeGoalProgress(profitGoal, getCurrentMetrics().profit)
+    : null
+
+  const recommendations = useMemo(() => {
+    const recs = dashboardData.recommendations ?? []
+    if (!goalProgress || goalProgress.achieved) return recs
+    return [...recs].sort((a, b) => (b.recoveryMonthly ?? 0) - (a.recoveryMonthly ?? 0))
+  }, [dashboardData, goalProgress])
+
   async function handleSend(text) {
+    if (thinking) return // one request in flight at a time (chips can double-fire)
     const next = [...messages, { role: 'user', content: text }]
     setMessages(next)
     setThinking(true)
     try {
       const history = next.map(({ role, content }) => ({ role, content }))
       const res = await sendMessage(text, history)
+      const pipeline = res.pipeline ?? []
+      setActivePipeline(pipeline)
+      // Let the trace finish revealing, then land the reply.
+      await sleep(pipeline.length * PIPELINE_STEP_MS + 150)
       setMessages((prev) => [...prev, { role: 'assistant', content: res.reply, ...res }])
     } finally {
       setThinking(false)
@@ -50,7 +82,7 @@ export default function AppPage() {
   const rightWidth = chatExpanded ? '70%' : '45%'
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900">
+    <div className="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <TopBar onUpload={handleUpload} />
 
       <div className="flex min-h-0 flex-1">
@@ -69,14 +101,21 @@ export default function AppPage() {
 
             {/* Recommendations */}
             <div>
-              <h2 className="mb-3 text-sm font-semibold text-slate-700">
+              <h2 className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Recommendations
               </h2>
-              <div className="space-y-3">
-                {dashboardData.recommendations?.map((rec, i) => (
+              {goalProgress && !goalProgress.achieved && (
+                <p className="mb-3 text-xs text-slate-400 dark:text-slate-500">
+                  Prioritised for your profit goal — {formatINR(goalProgress.gap)}/mo gap to close
+                  by {formatMonth(profitGoal.deadline)}
+                </p>
+              )}
+              <div className={goalProgress && !goalProgress.achieved ? 'space-y-3' : 'mt-3 space-y-3'}>
+                {recommendations.map((rec) => (
                   <RecommendationCard
-                    key={i}
+                    key={rec.title}
                     recommendation={rec}
+                    goalGap={goalProgress && !goalProgress.achieved ? goalProgress.gap : null}
                     onExplain={handleExplainRecommendation}
                   />
                 ))}
@@ -105,6 +144,7 @@ export default function AppPage() {
           <ChatPanel
             messages={messages}
             thinking={thinking}
+            pipeline={activePipeline}
             onSend={handleSend}
             expanded={chatExpanded}
             onToggleExpand={() => setChatExpanded(!chatExpanded)}

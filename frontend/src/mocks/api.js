@@ -1,23 +1,43 @@
 // =====================================================================
 // API CONTRACT — POST /chat
 // This is the exact shape the backend must return. Do not deviate.
+// It matches tools/temp-mock-chat-server/mock_chat_server.py and the
+// reference implementation in tools/chat-panel/chat_panel.html.
+//
+// pipeline / evidence / confidence / suggested_followups are rendered by
+// the frontend UNTOUCHED — all retrieval and function-call wording is
+// authored backend-side, never reformatted here.
 //
 // Request:  { "message": string, "history": [{ "role": "user"|"assistant", "content": string }] }
 // Response:
 // {
 //   "reply": "...",
-//   "steps": [{ "icon": "file"|"function"|"book"|"chart"|"sparkles", "text": "..." }],
-//   "evidence": {
-//     "metrics": [{ "label": "...", "value": "..." }],
-//     "source": { "title": "...", "page": N, "snippet": "...", "why_used": "..." },
-//     "confidence": 0.82
-//   },
-//   "suggestions": ["...", "..."],
+//   "pipeline": [{ "label": "retrieving 'discount optimization'", "source": "SBA guide p.12" }],
+//                 // "source" optional; steps revealed in order, ~400ms apart
+//   "evidence": [{ "claim": "...", "source": "SBA guide p.34" }],
+//   "confidence": 0.82,
+//   "suggested_followups": ["...", "..."],
 //   "actions": [{ "id": "...", "label": "..." }]
 // }
 // =====================================================================
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+// TODO: backend — GET /profile (or fold into GET /dashboard)
+export const profile = {
+  name: 'Priya',
+  business: 'ABC Retail',
+}
+
+// Numeric current values for goal math (the dashboard cards hold formatted
+// strings). TODO: backend — real values live in GET /profit and GET /dashboard.
+export function getCurrentMetrics() {
+  return {
+    profit: 185400, // ₹/month
+    revenue: 1204500, // ₹/month
+    margin: 15.4, // %
+  }
+}
 
 export const SEED_SUGGESTIONS = [
   'Why did profits decrease this month?',
@@ -31,13 +51,14 @@ export const SEED_SUGGESTIONS = [
 export const greeting = {
   reply:
     "Hello! I've finished reviewing your June ledger for ABC Retail. Revenue grew 12% to ₹12.0L — good news. But profit slipped to ₹1.85L, and your margin is down from 18% to 15.4%. I found 3 places where money is leaking, worth about ₹1.2L per month. Want me to walk you through the biggest one?",
-  steps: [
-    { icon: 'file', text: 'reading ledger_june_2026.csv' },
-    { icon: 'function', text: 'calling find_profit_leaks() → 3 results' },
-    { icon: 'chart', text: 'computing monthly health score → 78/100' },
+  pipeline: [
+    { label: 'reading ledger_june_2026.csv' },
+    { label: 'calling find_profit_leaks() → 3 results' },
+    { label: 'computing monthly health score → 78/100' },
   ],
-  evidence: null,
-  suggestions: SEED_SUGGESTIONS,
+  evidence: [],
+  confidence: null,
+  suggested_followups: SEED_SUGGESTIONS,
   actions: [],
 }
 
@@ -46,28 +67,22 @@ export const greeting = {
 const profitLeakResponse = {
   reply:
     'Your margin fell from 18% to 15.4%. Root cause: Product A sold at a 22% average discount in June. It moves at volume, but after discount it nets almost nothing — that alone is costing you around ₹22,000 a month. Second, Customer XYZ pays 45 days late on average, which is quietly financing their business with your cash. Third, delivery costs rose 8% but your prices did not.',
-  steps: [
-    { icon: 'file', text: 'reading ledger_june_2026.csv' },
-    { icon: 'function', text: 'calling find_profit_leaks() → 3 results' },
-    { icon: 'book', text: "retrieving 'discount optimization' · SBA guide p.12" },
-    { icon: 'sparkles', text: 'generating recommendation' },
+  pipeline: [
+    { label: 'reading ledger_june_2026.csv' },
+    { label: 'calling find_profit_leaks() → 3 results' },
+    { label: "retrieving 'discount optimization'", source: 'SBA guide p.12' },
+    { label: 'generating recommendation' },
   ],
-  evidence: {
-    metrics: [
-      { label: 'Avg discount, Product A', value: '22%' },
-      { label: 'Margin, June', value: '15.4%' },
-      { label: 'Monthly loss', value: '₹22,000' },
-    ],
-    source: {
-      title: 'SBA pricing strategy guide',
-      page: 12,
-      snippet:
-        'Discounts above 15% typically require volume increases of 40% or more to break even on contribution margin...',
-      why_used: "Product A's 22% discount exceeds the threshold discussed in this guidance.",
+  evidence: [
+    { claim: 'Product A average discount was 22% in June', source: 'Ledger analysis' },
+    { claim: 'Margin fell from 18% to 15.4% month-over-month', source: 'Ledger analysis' },
+    {
+      claim: 'Discounts above 15% typically require volume increases of 40% or more to break even',
+      source: 'SBA pricing strategy guide p.12',
     },
-    confidence: 0.82,
-  },
-  suggestions: [
+  ],
+  confidence: 0.82,
+  suggested_followups: [
     'What if I cut the discount to 10%?',
     'Which customer is worst?',
     'How do I fix late payments?',
@@ -78,26 +93,21 @@ const profitLeakResponse = {
 const ragResponse = {
   reply:
     'For a retail business like yours, retention usually beats acquisition on cost — the guidance I found suggests a repeat customer costs 5–7x less to serve than winning a new one. Three practical steps for ABC Retail: start a simple purchase-count reward (every 10th purchase gets 10% off), send a WhatsApp reminder to customers inactive for 30+ days, and prioritise your top 20 customers — they drive 61% of your revenue.',
-  steps: [
-    { icon: 'book', text: "retrieving 'customer retention strategies' · SBA guide p.34" },
-    { icon: 'book', text: "retrieving 'loyalty programs for small retail' · SBA guide p.36" },
-    { icon: 'sparkles', text: 'generating recommendation' },
+  pipeline: [
+    { label: "retrieving 'customer retention strategies'", source: 'SBA guide p.34' },
+    { label: "retrieving 'loyalty programs for small retail'", source: 'SBA guide p.36' },
+    { label: 'generating recommendation' },
   ],
-  evidence: {
-    metrics: [
-      { label: 'Revenue from top 20 customers', value: '61%' },
-      { label: 'Customers inactive 30+ days', value: '34' },
-    ],
-    source: {
-      title: 'SBA customer retention guide',
-      page: 34,
-      snippet:
-        'Retaining an existing customer costs 5 to 7 times less than acquiring a new one. Simple loyalty mechanics outperform complex point systems in small retail...',
-      why_used: 'Your question is about retention strategy, which this guidance covers directly.',
+  evidence: [
+    {
+      claim: 'Retaining an existing customer costs 5–7x less than acquiring a new one',
+      source: 'SBA customer retention guide p.34',
     },
-    confidence: 0.78,
-  },
-  suggestions: [
+    { claim: 'Top 20 customers drive 61% of revenue', source: 'Ledger analysis' },
+    { claim: '34 customers have been inactive for 30+ days', source: 'Ledger analysis' },
+  ],
+  confidence: 0.78,
+  suggested_followups: [
     'Draft a WhatsApp win-back message',
     'Who are my top 20 customers?',
     'Why did profits decrease this month?',
@@ -108,27 +118,21 @@ const ragResponse = {
 const simulationResponse = {
   reply:
     "I ran the numbers. Cutting Product A's discount from 22% to 10% recovers roughly ₹22,000 per month, assuming volume drops no more than 8% — and Product A's demand has been steady for 4 months, so that's a reasonable assumption. Your margin would move from 15.4% to about 17.2%. The risk is low: even if volume drops 15%, you still come out ₹9,000 ahead.",
-  steps: [
-    { icon: 'function', text: 'calling simulate(discount=10%) → projected margin 17.2%' },
-    { icon: 'chart', text: 'checking Product A volume stability → steady, 4 months' },
-    { icon: 'sparkles', text: 'generating recommendation' },
+  pipeline: [
+    { label: 'calling simulate(discount=10%) → projected margin 17.2%' },
+    { label: 'checking Product A volume stability → steady, 4 months' },
+    { label: 'generating recommendation' },
   ],
-  evidence: {
-    metrics: [
-      { label: 'Projected recovery', value: '₹22,000 / month' },
-      { label: 'Projected margin', value: '17.2%' },
-      { label: 'Break-even volume drop', value: '15%' },
-    ],
-    source: {
-      title: 'SBA pricing strategy guide',
-      page: 12,
-      snippet:
-        'Discounts above 15% typically require volume increases of 40% or more to break even on contribution margin...',
-      why_used: 'The simulation applies the discount elasticity threshold from this guidance.',
+  evidence: [
+    { claim: 'Projected recovery is ₹22,000 per month at a 10% discount', source: 'Simulation engine' },
+    { claim: 'Projected margin improves from 15.4% to 17.2%', source: 'Simulation engine' },
+    {
+      claim: 'Break-even holds unless volume drops more than 15%',
+      source: 'SBA pricing strategy guide p.12',
     },
-    confidence: 0.85,
-  },
-  suggestions: [
+  ],
+  confidence: 0.85,
+  suggested_followups: [
     'What if volume drops 20%?',
     'Apply this to the simulator',
     'Draft a price update notice',
@@ -139,20 +143,16 @@ const simulationResponse = {
 const draftEmailResponse = {
   reply:
     'Here is a draft you can send:\n\nSubject: Payment reminder — invoice #2041\n\nDear XYZ Traders,\n\nI hope business is going well. This is a gentle reminder that invoice #2041 for ₹48,500, dated 3 June, is now 15 days past due. We value our partnership and would appreciate payment by Friday, 25 July.\n\nIf payment has already been made, please ignore this note. For any questions about the invoice, reply here or call us directly.\n\nWarm regards,\nABC Retail\n\nWant me to make it firmer, or shorter?',
-  steps: [
-    { icon: 'function', text: 'calling get_receivables(customer=XYZ) → ₹48,500 overdue' },
-    { icon: 'sparkles', text: 'drafting payment reminder' },
+  pipeline: [
+    { label: 'calling get_receivables(customer=XYZ) → ₹48,500 overdue' },
+    { label: 'drafting payment reminder' },
   ],
-  evidence: {
-    metrics: [
-      { label: 'Overdue amount, XYZ', value: '₹48,500' },
-      { label: 'Days overdue', value: '15' },
-      { label: 'Avg payment delay, XYZ', value: '45 days' },
-    ],
-    source: null,
-    confidence: 0.9,
-  },
-  suggestions: ['Make it firmer', 'Which customer is hurting me most?', 'How do I avoid late payments?'],
+  evidence: [
+    { claim: 'Invoice #2041 for ₹48,500 is 15 days past due', source: 'Receivables ledger' },
+    { claim: 'XYZ Traders pays 45 days late on average', source: 'Receivables ledger' },
+  ],
+  confidence: 0.9,
+  suggested_followups: ['Make it firmer', 'Which customer is hurting me most?', 'How do I avoid late payments?'],
   actions: [],
 }
 
@@ -246,6 +246,7 @@ export function getDashboardData() {
         reason: 'Product A moves at high volume, but the 22% discount destroys its contribution margin.',
         confidence: 85,
         estimatedRecovery: '₹22,000/mo',
+        recoveryMonthly: 22000, // ₹/month, numeric — used for goal-gap math
       },
       {
         title: 'Enforce payment terms with Customer XYZ',
@@ -253,6 +254,7 @@ export function getDashboardData() {
         reason: 'Customer XYZ consistently pays 45 days late, acting as an interest-free loan at your expense.',
         confidence: 82,
         estimatedRecovery: '₹48,500 cashflow',
+        recoveryMonthly: null, // one-time cash unlock, not recurring profit
       },
       {
         title: 'Review pricing on low-margin products',
@@ -260,9 +262,29 @@ export function getDashboardData() {
         reason: 'Products with <15% margin are dragging overall profitability down as operating costs rise.',
         confidence: 72,
         estimatedRecovery: '₹15,000/mo',
+        recoveryMonthly: 15000,
       },
     ],
   }
+}
+
+// ============ Transactions Mock ============
+// TODO: backend — GET /transactions (rows land here from POST /extract for
+// OCR'd ledger photos and POST /analyze for CSV imports).
+
+export function getTransactions() {
+  return [
+    { id: 't1', date: '2026-06-03', item: 'Product A', qty: 12, unit_price: 450, amount: 5400, source: 'ocr', confidence: 0.96 },
+    { id: 't2', date: '2026-06-04', item: 'Product B', qty: 3, unit_price: 1200, amount: 3600, source: 'ocr', confidence: 0.71 },
+    { id: 't3', date: '2026-06-05', item: 'Product C', qty: 8, unit_price: 620, amount: 4960, source: 'csv', confidence: 1 },
+    { id: 't4', date: '2026-06-09', item: 'Product A', qty: 20, unit_price: 450, amount: 9000, source: 'csv', confidence: 1 },
+    { id: 't5', date: '2026-06-11', item: 'Product D', qty: 5, unit_price: 880, amount: 4400, source: 'ocr', confidence: 0.88 },
+    { id: 't6', date: '2026-06-14', item: 'Product B', qty: 6, unit_price: 1200, amount: 7200, source: 'ocr', confidence: 0.93 },
+    { id: 't7', date: '2026-06-18', item: 'Product E', qty: 15, unit_price: 240, amount: 3600, source: 'ocr', confidence: 0.64 },
+    { id: 't8', date: '2026-06-21', item: 'Product A', qty: 10, unit_price: 430, amount: 4300, source: 'ocr', confidence: 0.91 },
+    { id: 't9', date: '2026-06-25', item: 'Product C', qty: 4, unit_price: 620, amount: 2480, source: 'csv', confidence: 1 },
+    { id: 't10', date: '2026-06-28', item: 'Product D', qty: 7, unit_price: 880, amount: 6160, source: 'ocr', confidence: 0.97 },
+  ]
 }
 
 // ============ Simulation Mock ============

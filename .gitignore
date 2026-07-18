@@ -5,9 +5,13 @@ dist/
 .env.local
 .claude/settings.local.json
 venv/
+.venv/
 __pycache__/
 *.py[cod]
 *.pyc
 .kaggle/
 .idea/
 .vscode/
+tools/
+PITCH.md
+.DS_Store

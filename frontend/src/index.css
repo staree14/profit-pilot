@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Dark mode is driven by data-theme="dark" on <html> (set by the TopBar
+   toggle, persisted as 'profitpilot-theme') — same mechanism as chat_panel.html. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
 /* ========== Design System ========== */
 :root {
   --color-brand: #2563EB;
@@ -30,6 +34,17 @@
   --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04);
 }
 
+[data-theme="dark"] {
+  --color-surface: #020617;
+  --color-surface-subtle: #0F172A;
+  --color-surface-muted: #1E293B;
+  --color-border: #1E293B;
+  --color-border-subtle: #1E293B;
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+}
+
 /* ========== Base ========== */
 html, body, #root {
   height: 100%;
@@ -56,6 +71,12 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* ========== Animated Gradient Orb (Landing Hero) ========== */
