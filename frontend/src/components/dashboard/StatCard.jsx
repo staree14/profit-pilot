@@ -21,9 +21,9 @@ export default function StatCard({ title, value, change, changeType, icon: Icon,
         <h3 className="text-sm font-medium text-slate-400">{title}</h3>
         {Icon && <Icon className="h-4 w-4 text-slate-500" />}
       </div>
-      <div className="mt-3 flex items-end justify-between">
-        <div className="flex flex-col">
-          <p className="text-2xl font-bold tracking-tight text-white">
+      <div className="mt-3 flex items-end justify-between gap-2">
+        <div className="flex min-w-0 flex-col">
+          <p className="truncate text-2xl font-bold tracking-tight text-white" title={`${prefix}${value}`}>
             {prefix}{value}
           </p>
           <p className={`mt-1 text-xs font-medium ${

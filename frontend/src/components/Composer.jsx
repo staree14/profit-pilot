@@ -7,6 +7,9 @@ export default function Composer({ onSend, disabled }) {
   const [attachment, setAttachment] = useState(null)
   const fileRef = useRef(null)
   const recognitionRef = useRef(null)
+  // Tracks whether the current text came from voice, so the reply can be
+  // read aloud — cleared on any real keystroke (see the input's onChange).
+  const voiceInputRef = useRef(false)
 
   function startVoice() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -26,10 +29,19 @@ export default function Composer({ onSend, disabled }) {
     recognition.interimResults = false
     recognition.continuous = false
 
+    // Accumulate only newly-finalized segments (via resultIndex) and commit the
+    // text once, in onend. Chrome can fire onresult more than once per session
+    // even with continuous=false, re-delivering results from index 0 each time —
+    // reading event.results[0] on every call (the old code) kept re-appending
+    // the same/growing transcript, producing repeats like "why why did why did i".
+    let finalTranscript = ''
+
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript
-      setText((prev) => prev ? prev + ' ' + transcript : transcript)
-      setListening(false)
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript
+        }
+      }
     }
 
     recognition.onerror = () => {
@@ -38,6 +50,11 @@ export default function Composer({ onSend, disabled }) {
 
     recognition.onend = () => {
       setListening(false)
+      const transcript = finalTranscript.trim()
+      if (transcript) {
+        setText((prev) => (prev ? prev + ' ' + transcript : transcript))
+        voiceInputRef.current = true
+      }
     }
 
     recognitionRef.current = recognition
@@ -52,7 +69,8 @@ export default function Composer({ onSend, disabled }) {
   function submit() {
     const trimmed = text.trim()
     if (!trimmed || disabled) return
-    onSend(trimmed, attachment)
+    onSend(trimmed, attachment, voiceInputRef.current)
+    voiceInputRef.current = false
     setText('')
     setAttachment(null)
   }
@@ -114,7 +132,10 @@ export default function Composer({ onSend, disabled }) {
         {/* Text input */}
         <input
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value)
+            voiceInputRef.current = false
+          }}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
           placeholder="Ask about your business..."
           className="h-9 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm text-slate-700 transition-all placeholder:text-slate-400 focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:border-blue-700 dark:focus:bg-slate-900 dark:focus:ring-blue-950"

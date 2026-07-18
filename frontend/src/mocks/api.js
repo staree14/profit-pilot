@@ -50,7 +50,7 @@ export const SEED_SUGGESTIONS = [
 // Proactive greeting — same response shape as POST /chat, rendered on load.
 export const greeting = {
   reply:
-    "Hello! I've finished reviewing your June ledger for ABC Retail. Revenue grew 12% to ₹12.0L — good news. But profit slipped to ₹1.85L, and your margin is down from 18% to 15.4%. I found 3 places where money is leaking, worth about ₹1.2L per month. Want me to walk you through the biggest one?",
+    "Hello! I've just reviewed your uploaded June ledger. I found 3 places where money is leaking, worth about ₹1.2L per month. Want me to walk you through the biggest one?",
   pipeline: [
     { label: 'reading ledger_june_2026.csv' },
     { label: 'calling find_profit_leaks() → 3 results' },

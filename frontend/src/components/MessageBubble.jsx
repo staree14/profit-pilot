@@ -1,3 +1,6 @@
+import { Volume2 } from 'lucide-react'
+import { speak } from '../lib/speech.js'
+
 export default function MessageBubble({ message }) {
   const isUser = message.role === 'user'
 
@@ -15,8 +18,16 @@ export default function MessageBubble({ message }) {
     <div className="flex justify-start">
       <div className="max-w-[92%] space-y-2">
         {/* Message content */}
-        <div className="rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 text-[14px] leading-relaxed whitespace-pre-wrap text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+        <div className="group relative rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 text-[14px] leading-relaxed whitespace-pre-wrap text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
           {message.content}
+          <button
+            onClick={() => speak(message.content)}
+            aria-label="Read aloud"
+            title="Read aloud"
+            className="absolute -bottom-3 -right-3 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 opacity-0 shadow-sm transition-opacity hover:text-blue-600 group-hover:opacity-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500 dark:hover:text-blue-400"
+          >
+            <Volume2 size={12} strokeWidth={1.75} />
+          </button>
         </div>
 
         {/* Quick action buttons */}

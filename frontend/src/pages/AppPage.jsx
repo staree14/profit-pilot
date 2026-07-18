@@ -9,6 +9,7 @@ import WhatIfSimulator from '../components/dashboard/WhatIfSimulator.jsx'
 import BusinessReport from '../components/dashboard/BusinessReport.jsx'
 import { sendMessage, greeting, getDashboardData, runSimulation, getGoals, getCurrentMetrics } from '../api/client.js'
 import { computeGoalProgress, formatINR, formatMonth } from '../lib/goals.js'
+import { speak } from '../lib/speech.js'
 
 const PIPELINE_STEP_MS = 400 // keep in sync with AIStatusPanel
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -46,7 +47,7 @@ export default function AppPage() {
     return [...recs].sort((a, b) => (b.recoveryMonthly ?? 0) - (a.recoveryMonthly ?? 0))
   }, [dashboardData, goalProgress])
 
-  async function handleSend(text) {
+  async function handleSend(text, attachment, viaVoice) {
     if (thinking) return // one request in flight at a time (chips can double-fire)
     const next = [...messages, { role: 'user', content: text }]
     setMessages(next)
@@ -59,6 +60,7 @@ export default function AppPage() {
       // Let the trace finish revealing, then land the reply.
       await sleep(pipeline.length * PIPELINE_STEP_MS + 150)
       setMessages((prev) => [...prev, { role: 'assistant', content: res.reply, ...res }])
+      if (viaVoice) speak(res.reply)
     } finally {
       setThinking(false)
     }
